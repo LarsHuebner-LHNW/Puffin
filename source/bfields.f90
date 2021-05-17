@@ -387,7 +387,8 @@ subroutine getBXfield(sx, sy, sz, bxj)
 
 
       !byj = sin(szt/8_wp)**2_wp * sin(szt)
-      byj = szt / 4_wp / pi * sin(szt)
+      byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * &
+            szt / 4_wp / pi * sin(szt)
 !$OMP END WORKSHARE
 
 !    print*, "hehehe"
@@ -403,7 +404,8 @@ subroutine getBXfield(sx, sy, sz, bxj)
 !              sin(szt / 8_wp) * cos(szt)  / 4_wp  &
 !            +  cos(szt/8_wp)**2_wp  * sin(szt)  )
             
-      byj = (-szt / 4_wp / pi + 1_wp) * sin(szt)
+      byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * &
+            (-szt / 4_wp / pi + 1_wp) * sin(szt)
 !$OMP END WORKSHARE
 
     else if (iUndPlace_G == iUndMain_G) then
@@ -411,7 +413,8 @@ subroutine getBXfield(sx, sy, sz, bxj)
 !$OMP WORKSHARE
 !      byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) &
 !            * sin(szt)
-      byj = sin(szt)
+     byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * &
+            sin(szt)
 !$OMP END WORKSHARE
 
     end if
