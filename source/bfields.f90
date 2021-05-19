@@ -18,6 +18,10 @@ module bfields
 use paratype
 use globals
 
+real(kind=wp)
+! function values for byfile
+integer(kind=ip) :: byf,bzf
+
 contains
 
 !> @author
@@ -43,6 +47,17 @@ contains
   real(kind=wp), intent(in) :: sz
 
   real(kind=wp), contiguous, intent(out) :: bxj(:), byj(:), bzj(:)
+
+  if (zUndType_G == 'byfile') then
+      ! update the by and bz funcs
+      ! actually, all particles see the same z component! This means, that the change
+      ! in the field over the bunch length must be small! I don't know if this is true
+      ! for special cases... e.g. LUX = 15mm period length, bunch peak-to-peak in z
+      ! can be about 100 micrometer when decompressing a lot. 
+      evaluateSplineBfield(byfield_G,sz,klo_G,khi_G,byf,bzf)
+  end if
+      
+
 
   call getBXfield(sx, sy, sz, bxj)
   call getBYfield(sx, sy, sz, byj)
@@ -152,6 +167,12 @@ subroutine getBXfield(sx, sy, sz, bxj)
 !    END plane pole undulator field description
 !  ####################################################
 
+! by field - new
+  else if (zUndType_G == 'byfile') then
+!$OMP WORKSHARE
+    bxj = 0_wp
+!$OMP END WORKSHARE
+  
 
 
 
@@ -422,7 +443,11 @@ subroutine getBXfield(sx, sy, sz, bxj)
 !    END plane pole undulator field description
 !  ####################################################
 
-
+! by field - new
+  else if (zUndType_G == 'byfile') then
+!$OMP WORKSHARE
+     byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byf
+!$OMP END WORKSHARE
 
 
 
@@ -641,7 +666,11 @@ subroutine getBZfield(sx, sy, sz, bzj)
 
 !    END plane pole undulator field description
 !  ####################################################
-
+! by field - new
+  else if (zUndType_G == 'byfile') then
+!$OMP WORKSHARE
+     byj = sinh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * bzf
+!$OMP END WORKSHARE
 
 
 

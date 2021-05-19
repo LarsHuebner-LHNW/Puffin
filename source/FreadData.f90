@@ -250,7 +250,7 @@ subroutine read_in(zfilename, &
 
   logical :: qOneD, qFieldEvolve, qElectronsEvolve, &
              qElectronFieldCoupling, qFocussing, &
-             qDiffraction, qDump, qUndEnds, qhdf5, qsdds, &
+             qDiffraction, qDump, qUndEnds1, qUndEnds2, qhdf5, qsdds, &
              qscaled, qInitWrLat, qDumpEnd
 
   integer(kind=ip) :: iNumNodesX, iNumNodesY, nodesPerLambdar
@@ -275,7 +275,7 @@ subroutine read_in(zfilename, &
 
 namelist /mdata/ qOneD, qFieldEvolve, qElectronsEvolve, &
                  qElectronFieldCoupling, qFocussing, &
-                 qDiffraction, qFilter, qUndEnds, &
+                 qDiffraction, qFilter, qUndEnds1, qUndEnds2, &
                  q_noise, qDump, qResume, qSeparateFiles, &
                  qFormattedFiles, qWriteZ, qWriteA, &
                  qWritePperp, qWriteP2, qWriteZ2, &
@@ -315,7 +315,10 @@ namelist /mdata/ qOneD, qFieldEvolve, qElectronsEvolve, &
   qDiffraction = .true.
   qFilter = .true.
   q_noise = .true.
-  qUndEnds = .false.
+  qUndEnds1 = .false.
+  qUndEnds2 = .false.
+  correctIn = .true.
+  correctOut = .true.
   qDump = .false.
   qResume = .false.
   qSeparateFiles = .false.
@@ -398,7 +401,11 @@ namelist /mdata/ qOneD, qFieldEvolve, qElectronsEvolve, &
   qDiffraction_G = qDiffraction
   qSwitches(iDump_CG) = qDump
 
-  qUndEnds_G = qUndEnds
+  qUndEnds1_G = qUndEnds1
+  qUndEnds2_G = qUndEnds2
+  correct_in_G = correctIn
+  correct_out_G = correctOut
+  
   qhdf5_G = qhdf5
   qscaled_G = qscaled
   qInitWrLat_G = qInitWrLat

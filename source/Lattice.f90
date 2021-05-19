@@ -33,7 +33,9 @@ integer(kind=ip), parameter :: iUnd = 1_ip, &
 
 integer(kind=ip), allocatable :: iElmType(:)
 
-integer(kind=ip) :: iUnd_cr, iChic_cr, iDrift_cr, iQuad_cr, iModulation_cr    ! Counters for each element type
+character(1024_ip) :: fieldfile 
+
+integer(kind=ip) :: iUnd_cr, iUndF_cr, iChic_cr, iDrift_cr, iQuad_cr, iModulation_cr    ! Counters for each element type
 
 !integer(kind=ip) :: inum_latt_elms
 
@@ -113,6 +115,8 @@ contains
       allocate(ux_arr(numOfUnds), uy_arr(numOfUnds), &
                kbnx_arr(numOfUnds), kbny_arr(numOfUnds))
       allocate(zundtype_arr(numOfUnds))
+      ! for byfile !
+      allocate(byfields(numOfUndsF))
 
       allocate(chic_disp(numOfChics), chic_slip(numOfChics), &
                chic_zbar(numOfChics))
@@ -138,6 +142,7 @@ contains
       dz_f =  delmz(1)
       nSteps_f = nSteps_arr(1)
       taper = tapers(1)
+
 
       if (.not. qscaled_G) then
         kbnx_arr = kbnx_arr * lg_G
@@ -183,6 +188,7 @@ contains
       tapers(1) = taper
       nSteps_arr(1) = nSteps_f
       iUnd_cr = 1_ip
+      iUndF_cr = 1_ip
       nSteps_arr(1) = nSteps_f
       delmz(1) = dz_f
       mf(1) = 1_wp
@@ -254,7 +260,7 @@ contains
 
   integer(kind=ip) :: nperlam
 
-  integer(kind=ip) :: cnt, cntq, cntu, cntc, cntd, cntm, cntt
+  integer(kind=ip) :: cnt, cntq, cntu, cntuf, cntc, cntd, cntm, cntt
   character(40) :: ztest
 
 !   pi = 4.0_WP*ATAN(1.0_WP)
@@ -263,6 +269,7 @@ contains
   cnt = 0
   cntt = 0
   cntu = 0
+  cntuf = 0
   cntq = 0
   cntd = 0
   cntc = 0
@@ -353,7 +360,41 @@ contains
         end if
 
 
+      else if (ztest(1:2) == 'UF') then
+        
+        backspace(168)
 
+        cntu = cntu + 1
+        cntuf = cntuf + 1
+
+!       reading ... element ID, undulator field data, 
+!       total number of integration steps (total)
+
+        read (168,*, IOSTAT=ios) ztest, fieldfile, nSteps_arr(cntu)  ! read vars
+
+        ! force undulator settings
+        zundtype_arr(cntu) = 'byfile'
+        mf(cntu) = 1 ! this is dummy
+        tapers(cntu) = 0 !tapers will probably included at some point
+        ux_arr(cntu) = 0
+        uy_arr(cntu) = 1
+        kbnx_arr(cntu) = 0
+        kbny_arr(cntu) = 0
+
+        cntt = cntt + 1
+        iElmType(cntt) = iUnd
+
+
+        call read_planepolefield(filename,byfields(cntuf))
+
+
+        ! Dont mess with scaled units. The program can think in scaled units. I cannot.
+        ! Also rescaling z for every input beam is messy!
+        zpositions = zpositions/lg_G
+        delmz(cntu) = zpositions(datapoints)-zpositions(1)
+        ! Dont know if it has side effects if not set...
+        slamw = 4.0_WP * pi * rho
+        
 
 
       else if (ztest(1:2) == 'CH') then
@@ -879,17 +920,16 @@ contains
 
 !     Setup undulator ends
 
-    if (qUndEnds_G) then
-
+    if (qUndEnds1_G) then
       sZFS = 4_wp * pi * sRho_G  *  2.0_wp
+    else
+      sZFS = 0_wp
+    end if
+    if (qUndEnds2_G) then
       sZFE = nSteps * sStepSize - &
                4_wp * pi * sRho_G  *  2.0_wp
-
     else
-
-      sZFS = 0_wp
       sZFE = nSteps * sStepSize
-
     end if
 
   end subroutine initUndulator
@@ -951,13 +991,14 @@ contains
 !                LOCAL ARGS
 
   integer :: ios
-  integer(kind=ip) :: cnt, cntq, cntu, cntc, cntd, cntm
+  integer(kind=ip) :: cnt, cntq, cntu, cntuf, cntc, cntd, cntm
   character(40) :: ztest
 
   ztest = ''
   cnt = 0
   cntq = 0
   cntu = 0
+  cntuf = 0
   cntc = 0
   cntd = 0
   cntm = 0
@@ -978,6 +1019,7 @@ contains
       !if (tProcInfo_G%qroot)  print*, "Turns out you had ", cnt, "lines in the file!!"
       if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 1)) then
           print*, "Simulating ", cntu, "undulators"
+          print*, cntut, "of these have a by file"
           print*, cntq, "quads,"
           print*, cntc, "chicanes,"
           print*, cntd, "drifts"
@@ -1003,6 +1045,12 @@ contains
 
 
         cntu = cntu + 1
+
+      else if (ztest(1:2) == 'UF') then
+
+
+        cntu = cntu + 1
+        cntuf = cntuf + 1
 
 
       else if (ztest(1:2) == 'CH') then
@@ -1038,6 +1086,8 @@ contains
   numOfMods = cntq + cntu + cntc + cntd + cntm
 
   numOfUnds = cntu
+
+  numOfUndsF = cntuf
 
   numOfChics = cntc
 

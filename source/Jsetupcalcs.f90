@@ -760,7 +760,7 @@ subroutine calcScaling(srho, saw, sgamr, slam_w, &
     sfx = 0.0_wp
     sfy = 1.0_wp
 
-  else if (zUndType == 'planepole') then
+  else if ((zUndType == 'planepole') .or. (zUndType == 'byfile')) then
 
     saw_rms =  saw / sqrt(2.0_wp)
     fx_G = 0.0_wp   ! Temp fix for initialization bug
