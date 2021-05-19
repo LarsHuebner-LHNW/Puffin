@@ -384,7 +384,7 @@ contains
         cntt = cntt + 1
         iElmType(cntt) = iUnd
 
-
+        ! here no scaled units are stored!
         call read_planepolefield(filename,byfields(cntuf))
 
 
