@@ -448,11 +448,11 @@ subroutine getBXfield(sx, sy, sz, bxj)
 ! by field - new
   else if (zUndType_G == 'Bfile') then
 !$OMP WORKSHARE
-     ! This is not 100% correct, but since main component is most important,
-     ! accuracy should be acceptable, since the local expansion inbetween
+     ! This is not 100% correct,
+     ! but accuracy should be acceptable, since the local expansion inbetween
      ! the provided points of the field is up to 3d order and describes the field well.
-     ! Actually far away form the axis the field is probably worse than in reality 
-     ! so if you see gain in the simulation, there should be gain in the experiment.
+     ! Actually far away form the axis the field is probably not correct,
+     ! but close to the axis it should be ok!
      byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byf
 !$OMP END WORKSHARE
 
@@ -676,7 +676,8 @@ subroutine getBZfield(sx, sy, sz, bzj)
 ! by field - new
   else if (zUndType_G == 'Bfile') then
 !$OMP WORKSHARE
-     bzj = sinh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byfd
+     bzj = sinh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byfd * &
+           lam_w_G / 2_wp / pi ! integration factor, since byf is not scaled
 !$OMP END WORKSHARE
 
 
