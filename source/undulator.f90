@@ -358,7 +358,7 @@ end if
      call correctTrans()  ! correct transverse motion at undulator exit
   end if
 
-  if (zUndType_G == 'Bfield') then
+  if (zUndType_G == 'Bfile') then
     ! increase counter for undulator with file
     iUndF_cr = iUndF_cr + 1_ip
   end if

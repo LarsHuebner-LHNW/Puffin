@@ -55,15 +55,20 @@ contains
       ! in the field over the bunch length must be small! I don't know if this is true
       ! for special cases... e.g. LUX = 15mm period length, bunch peak-to-peak in z
       ! can be about 100 micrometer when decompressing a lot. 
+      !if (tProcInfo_G%qRoot) print *, 'I am evaluating a Bfile...'
       z_coord_unscaled = lam_w_G * sZ / ( 4.0_wp * pi * sRho_G)
       call evaluateSplineBfield(bfieldfromfile_G,zcoord_unscaled,klo_G,khi_G,byf,byfd)
+      !if (tProcInfo_G%qRoot) print *, '...And it worked!'
   end if
       
 
 
   call getBXfield(sx, sy, sz, bxj)
+  !if (tProcInfo_G%qRoot) print *, 'Bx worked!'
   call getBYfield(sx, sy, sz, byj)
+  !if (tProcInfo_G%qRoot) print *, 'By worked!'
   call getBZfield(sx, sy, sz, bzj)
+  !if (tProcInfo_G%qRoot) print *, 'Bz worked!'
 
   end subroutine getBFields
 
