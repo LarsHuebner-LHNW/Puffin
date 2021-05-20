@@ -236,8 +236,8 @@ type bfieldspline
   ! spline coefficients
   real(kind=wp), allocatable :: cy(:)
 end type bfieldspline
-type(bfieldspline), allocatable :: bfields(:)
-type(bfieldspline) :: bfield_G
+type(bfieldspline), allocatable :: bfieldsfromfile(:)
+type(bfieldspline) :: bfieldfromfile_G
 ! also need some global limiters for bisection
 integer(kind=ip) :: klo_G, khi_G
 

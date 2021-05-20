@@ -117,7 +117,7 @@ contains
                kbnx_arr(numOfUnds), kbny_arr(numOfUnds))
       allocate(zundtype_arr(numOfUnds))
       ! for Bfile !
-      allocate(bfields(numOfUndsF))
+      allocate(bfieldsfromfile(numOfUndsF))
 
       allocate(chic_disp(numOfChics), chic_slip(numOfChics), &
                chic_zbar(numOfChics))
@@ -394,12 +394,12 @@ contains
         iElmType(cntt) = iUnd
 
         ! here no scaled units are stored!
-        call read_planepolefield(fieldfile,bfields(cntuf))
-        n = bfields(cntuf)%n
+        call read_planepolefield(fieldfile,bfieldsfromfile(cntuf))
+        n = bfieldsfromfile(cntuf)%n
         ! Following lines are for debugging only and should be commented when everthing works:
         ! ======
-        zi = bfields(cntuf)%z(1)
-        zmax = bfields(cntuf)%z(n)
+        zi = bfieldsfromfile(cntuf)%z(1)
+        zmax = bfieldsfromfile(cntuf)%z(n)
         znum = 10000_ip
         zstep = (zmax-zi)/real(znum,kind=wp) ! no mixed arithmetic
         klo_G = 1_ip
@@ -408,7 +408,7 @@ contains
 
         do k=0,znum
           znew(k)=zi
-          call evaluateSplineBfield(bfields(cntuf),zi,klo_G,khi_G,fyarr(k),fydarr(k))
+          call evaluateSplineBfield(bfieldsfromfile(cntuf),zi,klo_G,khi_G,fyarr(k),fydarr(k))
           zi = zi + zstep
         end do
 
@@ -425,7 +425,7 @@ contains
 
         ! Dont mess with scaled units. The program can think in scaled units. I cannot.
         ! Also rescaling z for every input beam is messy!
-        delmz(cntu) = (bfields(cntuf)%z(n)-bfields(cntuf)%z(1))/lg_G
+        delmz(cntu) = (bfieldsfromfile(cntuf)%z(n)-bfieldsfromfile(cntuf)%z(1))/lg_G
         ! Dont know if it has side effects if not set...
         slamw = 4.0_WP * pi * rho
         
