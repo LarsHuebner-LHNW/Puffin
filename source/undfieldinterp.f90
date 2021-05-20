@@ -27,64 +27,72 @@ implicit none
 
 contains
 
-subroutine read_planepolefield(byfile, byfield)
+subroutine read_planepolefield(bfile, bfield)
 
 
     implicit none
 
-! byfile        -      file to load
-! byfield contains
+! bfile        -      file to load
+! bfield contains
 ! n     -      number of datapoints in file
 ! z               -      positions array
 ! by              -      by field array
 ! c              -      coefficients for spline
 
 
-    character(1024_ip), intent(in) :: byfile
-    type(byfieldspline), intent(out) :: byfield
+    character(1024_ip), intent(in) :: bfile
+    type(bfieldspline), intent(out) :: bfield
 
     int(kind=ip) :: ndatapoints
 
     integer(kind=ip)   :: ios
 
-    open(73,FILE=byfile, IOSTAT=ios, STATUS='OLD', ACTION='READ', POSITION ='REWIND')
+    open(73,FILE=bfile, IOSTAT=ios, STATUS='OLD', ACTION='READ', POSITION ='REWIND')
 
     if (ios /= 0) then
-        print*, 'iostat = ', ios, "in loadByField"
-        stop "OPEN(byfile) not performed correctly, IOSTAT /= 0"
+        print*, 'iostat = ', ios, "in read_planepolefield"
+        stop "OPEN(bfile) not performed correctly, IOSTAT /= 0"
     end if
 
     ! read the number of datapoints
     read(73,*, IOSTAT=ios) ndatapoints ! number
     if (ios < 0) then ! end of file
-        if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of byfield file at line 1!"
-        stop "byfield file empty!"
+        if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 1!"
+        stop "bfield file empty!"
     end if
-    byfield%n = ndatapoints
+    bfield%n = ndatapoints
 
-    allocate(byfield%z(ndatapoints))
-    allocate(byfield%by(ndatapoints))
+    allocate(bfield%z(ndatapoints))
+    allocate(bfield%by(ndatapoints))
+    !allocate(bfield%bz(ndatapoints))
 
-    read(73,*,IOSTAT=ios) byfield%z
+    read(73,*,IOSTAT=ios) bfield%z
     if (ios < 0) then ! end of file
-        if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of byfield file at line 2!"
-        stop "byfield file has only 1 line!"
+        if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 2!"
+        stop "bfield file has only 1 line!"
     end if
 
-    read(73,*,IOSTAT=ios) byfield%by
+    read(73,*,IOSTAT=ios) bfield%by
     if (ios < 0) then ! end of file
-        if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of byfield file at line 3!"
-        stop "byfield file has only 2 lines!"
+        if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 3!"
+        stop "bfield file has only 2 lines!"
     end if
+
+    !read(73,*,IOSTAT=ios) bfield%bz
+    !if (ios < 0) then ! end of file
+    !    if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 4!"
+    !    stop "bfield file has only 3 lines!"
+    !end if
 
     close(73, STATUS='KEEP')
 
-    allocate(byfield%c(ndatapoints))
-    call splineCoeff(ndatapoints,byfield%z,byfield%by,byfield%c)
+    allocate(bfield%c(ndatapoints))
+    call splineCoeff(ndatapoints,bfield%z,bfield%by,bfield%cy)
+    !call splineCoeff(ndatapoints,bfield%z,bfield%bz,bfield%cz)
     return
 end subroutine read_planepolefield
 
-subroutine splineCoeff(ndatapoints,z,by,coeff)
+subroutine splineCoeff(ndatapoints,z,Bi,coeff)
     ! calculate a cubic spline
     ! adapted from
     ! NUMERICAL RECIPES IN FORTRAN 77: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43064-X)
@@ -93,7 +101,7 @@ subroutine splineCoeff(ndatapoints,z,by,coeff)
     ! coefficients are second derivative at that point
     integer(kind=ip), intent(in) :: ndatapoints
     real(kind=wp), intent(in) :: z(:)
-    real(kind=wp), intent(in) :: by(:)
+    real(kind=wp), intent(in) :: Bi(:)
     real(kind=wp), intent(out) :: coeff(:)
 
     if (ndatapoints > 65536_ip) then! maximum interpolation points. Probably gets too slow if too large
@@ -116,8 +124,8 @@ subroutine splineCoeff(ndatapoints,z,by,coeff)
       coeff(i)=(sig-1.0_wp)/p
       u(i) = (6.0_wp* & 
                ( &
-                 (by(i+1)-by(i)) / (z(i+1)-z(i)) &
-                 -(by(i)-by(i-1)) / (z(i)-z(i-1)) &
+                 (Bi(i+1)-Bi(i)) / (z(i+1)-z(i)) &
+                 -(Bi(i)-Bi(i-1)) / (z(i)-z(i-1)) &
                ) &
                / (z(i+1)-z(i-1)) &
                - sig*u(i-1) &
@@ -129,54 +137,63 @@ subroutine splineCoeff(ndatapoints,z,by,coeff)
     return
 end subroutine splineCoeff
 
-subroutine evaluateSplineBfield(byspline,zin,klo,khi,feval,fdeval)
-    ! return value (By) and first derivative (Bz) of spline
+subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
+    ! return value  and first derivative of splines
     ! adapted from
     ! NUMERICAL RECIPES IN FORTRAN 77: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43064-X)
     ! page 110
-    type(byfieldspline), intent(in) :: byspline
+    type(bfieldspline), intent(in) :: bspline
     real(kind=wp), intent(in) :: zin
     real(kind=wp), intent(inout) :: klo ! interval guess low
     real(kind=wp), intent(inout) :: khi ! interval guess high
-    real(kind=wp), intent(out) :: feval,fdeval
+    real(kind=wp), intent(out) :: fyeval,fydeval !,fzeval ,fzdeval ! return values
 
     ! helper variables
     integer(kind=ip) :: k ! position
     real(kind=wp) :: a,b,h,z1,z2
 
-    if ((zin < byspline%z(klo)) .or. (zin > byspline%z(khi))) then
+    if ((zin < bspline%z(klo)) .or. (zin > bspline%z(khi))) then
       ! restart bisection
         klo = 1
-        khi = byspline%n
+        khi = bspline%n
     end if
     ! bisection
     do while ((khi-klo) > 1)
       k = (khi+klo)/2
-      if (byspline%z(k) > zin) then
+      if (bspline%z(k) > zin) then
         khi = k
       else
         klo = k
       end if
     end do ! value should now be between 2 z positions of interpolation
 
-    z1 = byspline%z(klo)
-    z2 = byspline%z(khi)
+    z1 = bspline%z(klo)
+    z2 = bspline%z(khi)
     h = z2-z1
     a = (z2-zin)/h
     b = (zin-z1)/h
-    feval = a*byspline%by(klo)+b*byspline%by(khi) &
-               + ((a**3.0_wp-a)*byspline%c(klo)+(b**3-b)*byspline%c(khi)) &
+    fyeval = a*bspline%by(klo)+b*bspline%by(khi) &
+               + ((a**3.0_wp-a)*bspline%cy(klo)+(b**3-b)*bspline%cy(khi)) &
                * (h**2.0_wp)/2.0_wp
-    fdeval = (byspline%by(khi)-byspline%by(klo))*zin/h &
+    fydeval = (bspline%by(khi)-bspline%by(klo))*zin/h &
                 + ( &
-                     (h**2.0_wp - 3.0_wp * (z2-zin)**2.0_wp)*byspline%c(klo) &
-                   - (h**2.0_wp - 3.0_wp * (zin-z1)**2.0_wp)*byspline%c(khi) &
+                     (h**2.0_wp - 3.0_wp * (z2-zin)**2.0_wp)*bspline%cy(klo) &
+                   - (h**2.0_wp - 3.0_wp * (zin-z1)**2.0_wp)*bspline%cy(khi) &
                 ) &
                 / (2.0_wp*h) 
+    !fzeval = a*bspline%bz(klo)+b*bspline%bz(khi) &
+    !           + ((a**3.0_wp-a)*bspline%cz(klo)+(b**3-b)*bspline%cz(khi)) &
+    !           * (h**2.0_wp)/2.0_wp
+    !fzdeval = (bspline%bz(khi)-bspline%bz(klo))*zin/h &
+    !            + ( &
+    !                 (h**2.0_wp - 3.0_wp * (z2-zin)**2.0_wp)*bspline%cz(klo) &
+    !               - (h**2.0_wp - 3.0_wp * (zin-z1)**2.0_wp)*bspline%cz(khi) &
+    !            ) &
+    !            / (2.0_wp*h) 
 
     ! slightly increase window again for next run. 
-    khi = MIN(khi,byspline%n-5)+5
-    klo = MIN(klo,6)-5
+    khi = MIN(khi,bspline%n-3)+3
+    klo = MIN(klo,3)-3
     return
 end subroutine splineCoeff
 

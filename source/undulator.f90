@@ -69,10 +69,11 @@ contains
 !     Need to match into undulator
 
   call initUndulator(iUnd_cr, sZ, szl)
-  if (zUndType_G == 'byfile') then
-    byfield_G = byfields(iUndF_cr)
+  if (zUndType_G == 'Bfile') then
+    bfield_G = bfields(iUndF_cr)
     klo_G = 1
-    khi_G = byfields%n
+    !khi_G = bfields%n
+    khi_G = 10 ! if this is not sufficient, then bisect algorithm will restart.
   end if
 
   if (qResume_G) then
@@ -89,7 +90,7 @@ contains
     start_step = 0_ip  ! ...TEMP...
 
     ! only match in on request!
-    if ((.not. qUndEnds1_G) .and. (correct_in_G)) call matchIn(szl)
+    if ((.not. qUndEnds_G) .and. (correct_in_G)) call matchIn(szl)
 
   end if
 
@@ -352,12 +353,12 @@ end if
 
   if (correct_out_G) then
   ! only correct if user wants the beam to be corrected.
-     if (.not. qUndEnds2_G) call matchOut(sZ)
+     if (.not. qUndEnds_G) call matchOut(sZ)
 
      call correctTrans()  ! correct transverse motion at undulator exit
   end if
 
-  if (zUndType_G == 'byfield') then
+  if (zUndType_G == 'Bfield') then
     ! increase counter for undulator with file
     iUndF_cr = iUndF_cr + 1_ip
   end if

@@ -18,9 +18,8 @@ module bfields
 use paratype
 use globals
 
-real(kind=wp)
-! function values for byfile
-integer(kind=ip) :: byf,bzf
+! function values for Bfile
+integer(kind=ip) :: byf,byfd!,bzf,bzdf
 
 contains
 
@@ -48,7 +47,7 @@ contains
 
   real(kind=wp), contiguous, intent(out) :: bxj(:), byj(:), bzj(:)
 
-  if (zUndType_G == 'byfile') then
+  if (zUndType_G == 'Bfile') then
       ! update the by and bz funcs
       ! actually, all particles see the same z component! This means, that the change
       ! in the field over the bunch length must be small! I don't know if this is true
@@ -56,7 +55,7 @@ contains
       ! can be about 100 micrometer when decompressing a lot. 
       real(kind=wp) :: zcoord_unscaled
       z_coord_unscaled = lam_w_G * sZ / ( 4.0_wp * pi * sRho_G)
-      evaluateSplineBfield(byfield_G,zcoord_unscaled,klo_G,khi_G,byf,bzf)
+      evaluateSplineBfield(bfield_G,zcoord_unscaled,klo_G,khi_G,byf,byfd)
   end if
       
 
@@ -170,7 +169,7 @@ subroutine getBXfield(sx, sy, sz, bxj)
 !  ####################################################
 
 ! by field - new
-  else if (zUndType_G == 'byfile') then
+  else if (zUndType_G == 'Bfile') then
 !$OMP WORKSHARE
     bxj = 0_wp
 !$OMP END WORKSHARE
@@ -446,8 +445,13 @@ subroutine getBXfield(sx, sy, sz, bxj)
 !  ####################################################
 
 ! by field - new
-  else if (zUndType_G == 'byfile') then
+  else if (zUndType_G == 'Bfile') then
 !$OMP WORKSHARE
+     ! This is not 100% correct, but since main component is most important,
+     ! accuracy should be acceptable, since the local expansion inbetween
+     ! the provided points of the field is up to 3d order and describes the field well.
+     ! Actually far away form the axis the field is probably worse than in reality 
+     ! so if you see gain in the simulation, there should be gain in the experiment.
      byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byf
 !$OMP END WORKSHARE
 
@@ -669,9 +673,9 @@ subroutine getBZfield(sx, sy, sz, bzj)
 !    END plane pole undulator field description
 !  ####################################################
 ! by field - new
-  else if (zUndType_G == 'byfile') then
+  else if (zUndType_G == 'Bfile') then
 !$OMP WORKSHARE
-     byj = sinh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * bzf
+     bzj = sinh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byfd
 !$OMP END WORKSHARE
 
 

@@ -224,20 +224,20 @@ character(32_ip), allocatable :: zundtype_arr(:)
 
 integer(kind=ip), allocatable :: nSteps_arr(:)
 
-! and especially for undulator file 'byfile'
+! and especially for undulator file 'bfile'
 
 
-type byfieldspline
+type bfieldspline
   ! number of data points
   integer(kind=ip) :: n 
   ! data
   real(kind=wp), allocatable :: z(:)
   real(kind=wp), allocatable :: by(:)
   ! spline coefficients
-  real(kind=wp), allocatable :: c(:)
-end type byfieldspline
-type(byfieldspline), allocatable :: byfields(:)
-type(byfieldspline) :: byfield_G
+  real(kind=wp), allocatable :: cy(:)
+end type bfieldspline
+type(bfieldspline), allocatable :: bfields(:)
+type(bfieldspline) :: bfield_G
 ! also need some global limiters for bisection
 integer(kind=ip) :: klo_G, khi_G
 
@@ -314,8 +314,7 @@ real(kind=wp) :: n2col0  ! Initial alpha in the current undulator module
 real(kind=wp) :: m2col   ! Fractional change in eta due to change in aw
                          ! (redundant) 
 
-logical :: qUndEnds1_G     ! If modelling undulator entrance
-logical :: qUndEnds2_G     ! If modelling undulator exit
+logical :: qUndEnds_G     ! If modelling undulator ends
 logical :: correct_in_G     ! If not modelling undulator entrance correct offsets
 logical :: correct_out_G     ! If not modelling undulator exit correct offsets
 

@@ -365,7 +365,7 @@ contains
 
     real(kind=wp) :: szl
 
-      if ((qUndEnds1_G) .or. (qUndEnds2_G))  then
+      if (qUndEnds_G) then
 
         if (szl < 0) then
 
@@ -373,18 +373,12 @@ contains
           stop
 
         else if (sZl <= sZFS) then 
-          if (qUndEnds1_G) then
-            iUndPlace_G = iUndStart_G
-          else ! Entrance switched off
-            iUndPlace_G = iUndMain_G
-          end if
+
+          iUndPlace_G = iUndStart_G
 
         else if (sZl >= sZFE) then
-          if (qUndEnds2_G) then
-             iUndPlace_G = iUndEnd_G
-          else ! Exit switched off
-            iUndPlace_G = iUndMain_G
-          end if
+ 
+          iUndPlace_G = iUndEnd_G
 
         else if ((sZl > sZFS) .and. (sZl < sZFE)) then
 

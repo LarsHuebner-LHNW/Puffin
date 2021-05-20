@@ -22,6 +22,7 @@ use gtop2
 use initConds
 use functions
 use pdiff
+use undfieldinterp
 
 implicit none
 
@@ -115,8 +116,8 @@ contains
       allocate(ux_arr(numOfUnds), uy_arr(numOfUnds), &
                kbnx_arr(numOfUnds), kbny_arr(numOfUnds))
       allocate(zundtype_arr(numOfUnds))
-      ! for byfile !
-      allocate(byfields(numOfUndsF))
+      ! for Bfile !
+      allocate(bfields(numOfUndsF))
 
       allocate(chic_disp(numOfChics), chic_slip(numOfChics), &
                chic_zbar(numOfChics))
@@ -142,7 +143,6 @@ contains
       dz_f =  delmz(1)
       nSteps_f = nSteps_arr(1)
       taper = tapers(1)
-
 
       if (.not. qscaled_G) then
         kbnx_arr = kbnx_arr * lg_G
@@ -373,7 +373,7 @@ contains
         read (168,*, IOSTAT=ios) ztest, fieldfile, nSteps_arr(cntu)  ! read vars
 
         ! force undulator settings
-        zundtype_arr(cntu) = 'byfile'
+        zundtype_arr(cntu) = 'Bfile'
         mf(cntu) = 1 ! this is dummy
         tapers(cntu) = 0 !tapers will probably included at some point
         ux_arr(cntu) = 0
@@ -385,8 +385,38 @@ contains
         iElmType(cntt) = iUnd
 
         ! here no scaled units are stored!
-        call read_planepolefield(filename,byfields(cntuf))
+        call read_planepolefield(filename,bfields(cntuf))
+        ! Following lines are for debugging only and should be commented when everthing works:
+        ! ======
+        integer(kind=ip) :: n,znum,k
+        real(kind=wp) :: zi,zmax,zstep
+        n = bfields(cntuf)%n
+        zi = bfields(cntuf)%z(1)
+        zmax = bfields(cntuf)%z(n)
+        znum = 10000_ip
+        zstep = (zmax-zi)/real(znum,kind=wp) ! no mixed arithmetic
+        klo_G = 1_ip
+        khi_G = 5_ip
 
+        real(kind=wp) :: znew(n),fyarr(n),fydarr(n) !,fzarr(n),fzdarr(n)
+
+        do k=0,znum
+          znew(k)=zi
+          call evaluateSplineBfield(bfields(cntuf),zi,klo_G,khi_G,fyarr(k),fydarr(k))
+          zi = zi + zstep
+        end do
+
+        integer(kind=ip) :: ios2
+        open(196, FILE='FIELD_TEST.TXT',IOS=iso2,STATUS='NEW')
+        write(196,*) n
+        write(196,*) znew(:)
+        write(196,*) fyarr(:)
+        write(196,*) fydarr(:)
+        if ( ios2 /= 0 ) stop "Write error in file unit 196"
+        close(196,STATUS='KEEP')
+
+        stop 'TEST: I interpolated the field. Test Stop!'
+        ! === until here: STOP PROGRAM IF DEBUG!
 
         ! Dont mess with scaled units. The program can think in scaled units. I cannot.
         ! Also rescaling z for every input beam is messy!
@@ -920,16 +950,17 @@ contains
 
 !     Setup undulator ends
 
-    if (qUndEnds1_G) then
+    if (qUndEnds_G) then
+
       sZFS = 4_wp * pi * sRho_G  *  2.0_wp
-    else
-      sZFS = 0_wp
-    end if
-    if (qUndEnds2_G) then
       sZFE = nSteps * sStepSize - &
                4_wp * pi * sRho_G  *  2.0_wp
+
     else
+
+      sZFS = 0_wp
       sZFE = nSteps * sStepSize
+
     end if
 
   end subroutine initUndulator
@@ -1019,7 +1050,7 @@ contains
       !if (tProcInfo_G%qroot)  print*, "Turns out you had ", cnt, "lines in the file!!"
       if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 1)) then
           print*, "Simulating ", cntu, "undulators"
-          print*, cntut, "of these have a by file"
+          print*, cntuf, "of these have a by file"
           print*, cntq, "quads,"
           print*, cntc, "chicanes,"
           print*, cntd, "drifts"

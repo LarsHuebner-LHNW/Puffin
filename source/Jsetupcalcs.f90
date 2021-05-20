@@ -268,7 +268,8 @@ SUBROUTINE passToGlobals(rho, aw, gamr, lam_w, iNN, &
       sKBetaX_G = aw / sqrt(2.0_wp * sEta_G) / sGammaR_G * kx_und_G
       sKBetaY_G = aw / sqrt(2.0_wp * sEta_G) / sGammaR_G * ky_und_G
 
-    else if (zUndType_G == 'planepole') then
+    
+    else if ((zUndType_G == 'planepole') .or. (zUndType_G == 'Bfile')) then 
 
       kx_und_G = 0.0_wp
       ky_und_G = 0.0_wp
@@ -760,7 +761,7 @@ subroutine calcScaling(srho, saw, sgamr, slam_w, &
     sfx = 0.0_wp
     sfy = 1.0_wp
 
-  else if ((zUndType == 'planepole') .or. (zUndType == 'byfile')) then
+  else if ((zUndType == 'planepole') .or. (zUndType == 'Bfile')) then
 
     saw_rms =  saw / sqrt(2.0_wp)
     fx_G = 0.0_wp   ! Temp fix for initialization bug
