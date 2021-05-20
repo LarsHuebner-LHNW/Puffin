@@ -251,7 +251,7 @@ subroutine read_in(zfilename, &
   logical :: qOneD, qFieldEvolve, qElectronsEvolve, &
              qElectronFieldCoupling, qFocussing, &
              qDiffraction, qDump, qUndEnds, qhdf5, qsdds, &
-             qscaled, qInitWrLat, qDumpEnd
+             qscaled, qInitWrLat, qDumpEnd, correctIn, correctOut
 
   integer(kind=ip) :: iNumNodesX, iNumNodesY, nodesPerLambdar
   real(kind=wp) :: sFModelLengthX, sFModelLengthY, sFModelLengthZ2

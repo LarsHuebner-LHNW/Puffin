@@ -43,7 +43,7 @@ subroutine read_planepolefield(bfile, bfield)
     character(1024_ip), intent(in) :: bfile
     type(bfieldspline), intent(out) :: bfield
 
-    int(kind=ip) :: ndatapoints
+    integer(kind=ip) :: ndatapoints
 
     integer(kind=ip)   :: ios
 
@@ -86,7 +86,7 @@ subroutine read_planepolefield(bfile, bfield)
 
     close(73, STATUS='KEEP')
 
-    allocate(bfield%c(ndatapoints))
+    allocate(bfield%cy(ndatapoints))
     call splineCoeff(ndatapoints,bfield%z,bfield%by,bfield%cy)
     !call splineCoeff(ndatapoints,bfield%z,bfield%bz,bfield%cz)
     return
@@ -103,15 +103,17 @@ subroutine splineCoeff(ndatapoints,z,Bi,coeff)
     real(kind=wp), intent(in) :: z(:)
     real(kind=wp), intent(in) :: Bi(:)
     real(kind=wp), intent(out) :: coeff(:)
+    ! helper variables
+    real(kind=wp) :: sig, p
+    integer(kind=ip) :: i,k
+    real(kind=wp), allocatable :: u(:)
 
     if (ndatapoints > 65536_ip) then! maximum interpolation points. Probably gets too slow if too large
         stop "more than 2**16 (65536) interpolation points. Aborting."
     end if 
 
     ! helper variables
-    real(kind=wp) :: u(ndatapoints)
-    real(kind=wp) :: sig, p
-    integer(kind=ip) :: i,k
+    allocate(u(ndatapoints))
 
     ! "natural" boundaries
     coeff(1)=0.0_wp
@@ -134,7 +136,9 @@ subroutine splineCoeff(ndatapoints,z,Bi,coeff)
     do k=ndatapoints-1,1,-1
       coeff(k)=coeff(k)*coeff(k+1)+u(k)
     end do
+    deallocate(u)
     return
+
 end subroutine splineCoeff
 
 subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
@@ -144,8 +148,8 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
     ! page 110
     type(bfieldspline), intent(in) :: bspline
     real(kind=wp), intent(in) :: zin
-    real(kind=wp), intent(inout) :: klo ! interval guess low
-    real(kind=wp), intent(inout) :: khi ! interval guess high
+    integer(kind=ip), intent(inout) :: klo ! interval index guess low
+    integer(kind=ip), intent(inout) :: khi ! interval index guess high
     real(kind=wp), intent(out) :: fyeval,fydeval !,fzeval ,fzdeval ! return values
 
     ! helper variables
@@ -191,10 +195,10 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
     !            ) &
     !            / (2.0_wp*h) 
 
-    ! slightly increase window again for next run. 
-    khi = MIN(khi,bspline%n-3)+3
-    klo = MIN(klo,3)-3
+    ! slightly increase window again for next run.
+    khi = MIN(khi,bspline%n-3_ip)+3_ip
+    klo = MIN(klo,3_ip)-3_ip
     return
-end subroutine splineCoeff
+end subroutine evaluateSplineBfield
 
 end module undfieldinterp

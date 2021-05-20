@@ -263,6 +263,15 @@ contains
   integer(kind=ip) :: cnt, cntq, cntu, cntuf, cntc, cntd, cntm, cntt
   character(40) :: ztest
 
+  integer(kind=ip) :: n
+  ! FOR DEBUGGING! COMMENT!
+  integer(kind=ip) :: ios2
+  integer(kind=ip) :: znum,k
+  real(kind=wp) :: zi,zmax,zstep
+  real(kind=wp),allocatable :: znew(:),fyarr(:),fydarr(:) !,fzarr(n),fzdarr(n)
+
+  !DEBUG END
+
 !   pi = 4.0_WP*ATAN(1.0_WP)
   c1 = 2.0_WP*rho
 
@@ -385,20 +394,17 @@ contains
         iElmType(cntt) = iUnd
 
         ! here no scaled units are stored!
-        call read_planepolefield(filename,bfields(cntuf))
+        call read_planepolefield(fieldfile,bfields(cntuf))
+        n = bfields(cntuf)%n
         ! Following lines are for debugging only and should be commented when everthing works:
         ! ======
-        integer(kind=ip) :: n,znum,k
-        real(kind=wp) :: zi,zmax,zstep
-        n = bfields(cntuf)%n
         zi = bfields(cntuf)%z(1)
         zmax = bfields(cntuf)%z(n)
         znum = 10000_ip
         zstep = (zmax-zi)/real(znum,kind=wp) ! no mixed arithmetic
         klo_G = 1_ip
         khi_G = 5_ip
-
-        real(kind=wp) :: znew(n),fyarr(n),fydarr(n) !,fzarr(n),fzdarr(n)
+        allocate(znew(n),fyarr(n),fydarr(n))
 
         do k=0,znum
           znew(k)=zi
@@ -406,22 +412,20 @@ contains
           zi = zi + zstep
         end do
 
-        integer(kind=ip) :: ios2
-        open(196, FILE='FIELD_TEST.TXT',IOS=iso2,STATUS='NEW')
+        open(196, FILE='FIELD_TEST.TXT',IOSTAT=ios2,STATUS='NEW')
         write(196,*) n
         write(196,*) znew(:)
         write(196,*) fyarr(:)
         write(196,*) fydarr(:)
         if ( ios2 /= 0 ) stop "Write error in file unit 196"
         close(196,STATUS='KEEP')
-
+        deallocate(znew,fyarr,fydarr)
         stop 'TEST: I interpolated the field. Test Stop!'
         ! === until here: STOP PROGRAM IF DEBUG!
 
         ! Dont mess with scaled units. The program can think in scaled units. I cannot.
         ! Also rescaling z for every input beam is messy!
-        zpositions = zpositions/lg_G
-        delmz(cntu) = zpositions(datapoints)-zpositions(1)
+        delmz(cntu) = (bfields(cntuf)%z(n)-bfields(cntuf)%z(1))/lg_G
         ! Dont know if it has side effects if not set...
         slamw = 4.0_WP * pi * rho
         

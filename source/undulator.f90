@@ -70,7 +70,7 @@ contains
 
   call initUndulator(iUnd_cr, sZ, szl)
   if (zUndType_G == 'Bfile') then
-    bfield_G = bfields(iUndF_cr)
+    bfieldfromfile_G = bfieldsfromfile(iUndF_cr)
     klo_G = 1
     !khi_G = bfields%n
     khi_G = 10 ! if this is not sufficient, then bisect algorithm will restart.
