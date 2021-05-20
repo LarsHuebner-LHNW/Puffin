@@ -265,11 +265,10 @@ contains
 
   integer(kind=ip) :: n
   ! FOR DEBUGGING! COMMENT!
-  integer(kind=ip) :: ios2
-  integer(kind=ip) :: znum,k
-  real(kind=wp) :: zi,zmax,zstep
-  real(kind=wp),allocatable :: znew(:),fyarr(:),fydarr(:) !,fzarr(n),fzdarr(n)
-
+  ! integer(kind=ip) :: ios2
+  ! integer(kind=ip) :: znum,k, jj
+  ! real(kind=wp) :: zi,zmax,zstep
+  ! real(kind=wp),allocatable :: znew(:),fyarr(:),fydarr(:) !,fzarr(n),fzdarr(n)
   !DEBUG END
 
 !   pi = 4.0_WP*ATAN(1.0_WP)
@@ -379,7 +378,9 @@ contains
 !       reading ... element ID, undulator field data, 
 !       total number of integration steps (total)
 
+        ! if (tProcInfo_G%qRoot) print *, 'try to read line with UF from lattice file.'
         read (168,*, IOSTAT=ios) ztest, fieldfile, nSteps_arr(cntu)  ! read vars
+        ! if (tProcInfo_G%qRoot) print *, 'UF line loaded. OK.'
 
         ! force undulator settings
         zundtype_arr(cntu) = 'Bfile'
@@ -394,33 +395,47 @@ contains
         iElmType(cntt) = iUnd
 
         ! here no scaled units are stored!
+        if (tProcInfo_G%qRoot) print *, 'reading a field from:', fieldfile
         call read_planepolefield(fieldfile,bfieldsfromfile(cntuf))
+
+        ! if (tProcInfo_G%qRoot) print *, 'OK, file loaded...'
         n = bfieldsfromfile(cntuf)%n
         ! Following lines are for debugging only and should be commented when everthing works:
         ! ======
-        zi = bfieldsfromfile(cntuf)%z(1)
-        zmax = bfieldsfromfile(cntuf)%z(n)
-        znum = 10000_ip
-        zstep = (zmax-zi)/real(znum,kind=wp) ! no mixed arithmetic
-        klo_G = 1_ip
-        khi_G = 5_ip
-        allocate(znew(n),fyarr(n),fydarr(n))
+        ! if (tProcInfo_G%qRoot) print *, 'DEBUGGING!'
+        ! zi = bfieldsfromfile(cntuf)%z(1)
+        ! if (tProcInfo_G%qRoot) print *, 'zi is', zi
+        ! zmax = bfieldsfromfile(cntuf)%z(n)
+        ! znum = 10000_ip
+        ! zstep = (zmax-zi)/real(znum,kind=wp) ! no mixed arithmetic
+        ! if (tProcInfo_G%qRoot) print *, 'step size is', zstep
+        ! klo_G = 1_ip
+        ! khi_G = 5_ip
+        ! allocate(znew(n),fyarr(n),fydarr(n))
 
-        do k=0,znum
-          znew(k)=zi
-          call evaluateSplineBfield(bfieldsfromfile(cntuf),zi,klo_G,khi_G,fyarr(k),fydarr(k))
-          zi = zi + zstep
-        end do
+        ! do k=1,znum
+        !   znew(k)=zi
+        !   if (tProcInfo_G%qRoot) print *, 'evaluated', k, 'of', znum
+        !   call evaluateSplineBfield(bfieldsfromfile(cntuf),zi,klo_G,khi_G,fyarr(k),fydarr(k))
+        !   zi = zi + zstep
+        ! end do
+        ! if (tProcInfo_G%qRoot) print *, 'OK. Now write new data back to file'
 
-        open(196, FILE='FIELD_TEST.TXT',IOSTAT=ios2,STATUS='NEW')
-        write(196,*) n
-        write(196,*) znew(:)
-        write(196,*) fyarr(:)
-        write(196,*) fydarr(:)
-        if ( ios2 /= 0 ) stop "Write error in file unit 196"
-        close(196,STATUS='KEEP')
-        deallocate(znew,fyarr,fydarr)
-        stop 'TEST: I interpolated the field. Test Stop!'
+        ! if (tProcInfo_G%qRoot) then
+        !   open(196, FILE='FIELD_TEST.TXT',IOSTAT=ios2,STATUS='REPLACE',FORM='FORMATTED')
+        !   write(196,*) znum
+        !   print *, 'n done.'
+        !   do jj=1,znum
+        !     write(196,"(E16.9,X)",ADVANCE="NO") znew(jj)
+        !     write(196,"(E16.9,X)",ADVANCE="NO") fyarr(jj)
+        !     write(196,"(E16.9,X)") fydarr(jj)
+        !   end do
+        !   print *, 'all data should be written.'
+        !   if ( ios2 /= 0 ) stop "Write error in file unit 196"
+        !   close(196,STATUS='KEEP')
+        ! end if
+        ! deallocate(znew,fyarr,fydarr)
+        ! stop 'TEST: I interpolated the field. Test Stop!'
         ! === until here: STOP PROGRAM IF DEBUG!
 
         ! Dont mess with scaled units. The program can think in scaled units. I cannot.

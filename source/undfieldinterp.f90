@@ -54,29 +54,36 @@ subroutine read_planepolefield(bfile, bfield)
         stop "OPEN(bfile) not performed correctly, IOSTAT /= 0"
     end if
 
+    ! if (tProcInfo_G%qRoot) print *, 'reading number of datapoints...'
     ! read the number of datapoints
     read(73,*, IOSTAT=ios) ndatapoints ! number
     if (ios < 0) then ! end of file
         if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 1!"
         stop "bfield file empty!"
     end if
+    ! if (tProcInfo_G%qRoot) print *, 'OK, datapoints=', ndatapoints
     bfield%n = ndatapoints
 
+    ! if (tProcInfo_G%qRoot) print *, 'allocate arrays'
     allocate(bfield%z(ndatapoints))
     allocate(bfield%by(ndatapoints))
     !allocate(bfield%bz(ndatapoints))
 
+    ! if (tProcInfo_G%qRoot) print *, 'reading z values...'
     read(73,*,IOSTAT=ios) bfield%z
     if (ios < 0) then ! end of file
         if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 2!"
         stop "bfield file has only 1 line!"
     end if
+    ! if (tProcInfo_G%qRoot) print *, 'OK'
 
+    ! if (tProcInfo_G%qRoot) print *, 'reading by values...'
     read(73,*,IOSTAT=ios) bfield%by
     if (ios < 0) then ! end of file
         if ((tProcInfo_G%qroot) .and. (ioutInfo_G > 2)) print*, "Reached end of bfield file at line 3!"
         stop "bfield file has only 2 lines!"
     end if
+    ! if (tProcInfo_G%qRoot) print *, 'OK'
 
     !read(73,*,IOSTAT=ios) bfield%bz
     !if (ios < 0) then ! end of file
@@ -87,7 +94,9 @@ subroutine read_planepolefield(bfile, bfield)
     close(73, STATUS='KEEP')
 
     allocate(bfield%cy(ndatapoints))
+    if (tProcInfo_G%qRoot) print *, 'interpolating field'
     call splineCoeff(ndatapoints,bfield%z,bfield%by,bfield%cy)
+    if (tProcInfo_G%qRoot) print *, 'OK'
     !call splineCoeff(ndatapoints,bfield%z,bfield%bz,bfield%cz)
     return
 end subroutine read_planepolefield
@@ -120,7 +129,9 @@ subroutine splineCoeff(ndatapoints,z,Bi,coeff)
     coeff(ndatapoints)=0.0_wp
     u(1)=0.0_wp
 
+    ! if (tProcInfo_G%qRoot) print *, 'constructing spline...'
     do i=2,ndatapoints-1
+      ! if (tProcInfo_G%qRoot) print *, 'step', i-2_ip, 'of', ndatapoints-2_ip
       sig = (z(i)-z(i-1))/(z(i+1)-z(i-1))
       p = sig*coeff(i-1)+2.0_wp
       coeff(i)=(sig-1.0_wp)/p
@@ -184,21 +195,10 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
     fyeval = a*bspline%by(klo)+b*bspline%by(khi) &
                + ((a**3.0_wp-a)*bspline%cy(klo)+(b**3-b)*bspline%cy(khi)) &
                * (h**2.0_wp)/2.0_wp
-    fydeval = (bspline%by(khi)-bspline%by(klo))*zin/h &
-                + ( &
-                     (h**2.0_wp - 3.0_wp * (z2-zin)**2.0_wp)*bspline%cy(klo) &
-                   - (h**2.0_wp - 3.0_wp * (zin-z1)**2.0_wp)*bspline%cy(khi) &
-                ) &
-                / (2.0_wp*h) 
-    !fzeval = a*bspline%bz(klo)+b*bspline%bz(khi) &
-    !           + ((a**3.0_wp-a)*bspline%cz(klo)+(b**3-b)*bspline%cz(khi)) &
-    !           * (h**2.0_wp)/2.0_wp
-    !fzdeval = (bspline%bz(khi)-bspline%bz(klo))*zin/h &
-    !            + ( &
-    !                 (h**2.0_wp - 3.0_wp * (z2-zin)**2.0_wp)*bspline%cz(klo) &
-    !               - (h**2.0_wp - 3.0_wp * (zin-z1)**2.0_wp)*bspline%cz(khi) &
-    !            ) &
-    !            / (2.0_wp*h) 
+    fydeval = ( 2.0_wp * (bspline%by(khi)-bspline%by(klo)) &
+                - bspline%cy(khi)*(a**2.0_wp + 2.0_wp * a * b - 2.0_wp * b ** 2.0_wp)*h**2.0_wp &
+                + bspline%cy(klo)*(b**2.0_wp + 2.0_wp * a * b - 2.0_wp * a ** 2.0_wp)*h**2.0_wp &
+              ) / (2.0_wp * h)
 
     ! slightly increase window again for next run.
     khi = MIN(khi,bspline%n-3_ip)+3_ip
