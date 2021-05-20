@@ -275,7 +275,7 @@ subroutine read_in(zfilename, &
 
 namelist /mdata/ qOneD, qFieldEvolve, qElectronsEvolve, &
                  qElectronFieldCoupling, qFocussing, &
-                 qDiffraction, qFilter, qUndEnds, &
+                 qDiffraction, qFilter, qUndEnds, correctIn, correctOut, &
                  q_noise, qDump, qResume, qSeparateFiles, &
                  qFormattedFiles, qWriteZ, qWriteA, &
                  qWritePperp, qWriteP2, qWriteZ2, &

@@ -155,7 +155,12 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
     ! helper variables
     integer(kind=ip) :: k ! position
     real(kind=wp) :: a,b,h,z1,z2
-
+    if ((zin <= bspline%z(0)) .or. (zin >= bspline%z(bspline%n))) then
+    ! not in field anymore. return early
+        fyeval = 0_wp
+        fydeval = 0_wp
+        return
+    end if
     if ((zin < bspline%z(klo)) .or. (zin > bspline%z(khi))) then
       ! restart bisection
         klo = 1
