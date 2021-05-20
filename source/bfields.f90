@@ -56,6 +56,7 @@ contains
       ! for special cases... e.g. LUX = 15mm period length, bunch peak-to-peak in z
       ! can be about 100 micrometer when decompressing a lot. 
       z_coord_unscaled = lam_w_G * sZ / ( 4.0_wp * pi * sRho_G)
+      print *, "z coordinate is", z_coord_unscaled
       call evaluateSplineBfield(bfieldfromfile_G,zcoord_unscaled,klo_G,khi_G,byf,byfd)
   end if
       
