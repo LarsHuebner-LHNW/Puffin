@@ -70,6 +70,7 @@ contains
 
   call initUndulator(iUnd_cr, sZ, szl)
   if (zUndType_G == 'Bfile') then
+    if (tProcInfo_G%qRoot) print *, "running file undulator", iUndF_cr
     bfieldfromfile_G = bfieldsfromfile(iUndF_cr)
     klo_G = 1
     !khi_G = bfields%n
