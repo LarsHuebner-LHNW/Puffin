@@ -441,7 +441,7 @@ contains
 
         ! Dont mess with scaled units. The program can think in scaled units. I cannot.
         ! Also rescaling z for every input beam is messy!
-        delmz(cntu) = (bfieldsfromfile(cntuf)%z(n)-bfieldsfromfile(cntuf)%z(1))/lg_G
+        delmz(cntu) = (bfieldsfromfile(cntuf)%z(n)-bfieldsfromfile(cntuf)%z(1))/ lg_G / real(n,kind=wp)
         ! Dont know if it has side effects if not set...
         slamw = 4.0_WP * pi * rho
         

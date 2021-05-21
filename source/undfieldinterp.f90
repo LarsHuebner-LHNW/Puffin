@@ -166,20 +166,23 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
     ! helper variables
     integer(kind=ip) :: k ! position
     real(kind=wp) :: a,b,h,z1,z2
-    if ((zin <= bspline%z(0)) .or. (zin >= bspline%z(bspline%n))) then
+    if ((zin <= bspline%z(1)) .or. (zin >= bspline%z(bspline%n))) then
     ! not in field anymore. return early
+        ! write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO"), "zin not in bspline%z(1),bspline%z(bspline%n): zin=",zin, " bspline%z(1)=",bspline%z(1), " bspline%z(bspline%n)=",bspline%z(bspline%n)
+        ! write (*,*) ""
         fyeval = 0_wp
         fydeval = 0_wp
         return
     end if
     if ((zin < bspline%z(klo)) .or. (zin > bspline%z(khi))) then
-      ! restart bisection
-        klo = 1
+      ! restart bisection - could be solved better, but this is a valid solution
+        ! print *, "restarting bisection" 
+        klo = 1_ip
         khi = bspline%n
     end if
     ! bisection
     do while ((khi-klo) > 1)
-      k = (khi+klo)/2
+      k = (khi+klo)/2_ip
       if (bspline%z(k) > zin) then
         khi = k
       else
@@ -200,9 +203,16 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
                 + bspline%cy(klo)*(b**2.0_wp + 2.0_wp * a * b - 2.0_wp * a ** 2.0_wp)*h**2.0_wp &
               ) / (2.0_wp * h)
 
-    ! slightly increase window again for next run.
+    ! slightly increase window again for next iteration.
     khi = MIN(khi,bspline%n-3_ip)+3_ip
-    klo = MIN(klo,3_ip)-3_ip
+    klo = MAX(klo,4_ip)-3_ip
+    ! I am no expert for MPI, but found that sometimes negative indices appear here.
+    if (klo < 1_ip) then
+      klo = 1_ip
+    end if
+    if (khi > bspline%n) then
+      khi = bspline%n
+    end if
     return
 end subroutine evaluateSplineBfield
 
