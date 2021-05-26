@@ -20,7 +20,7 @@ use globals
 use undfieldinterp
 
 ! function values for Bfile
-real(kind=wp) :: byf,byfd!,bzf,bzdf
+real(kind=wp) :: byf,byfd !,bzf,bzdf
 
 contains
 
@@ -42,12 +42,12 @@ contains
 
 !   subroutine to calculate the scaled magnetic fields
 !   at a given zbar
-
+  implicit none
   real(kind=wp), contiguous, intent(in) :: sx(:), sy(:)
   real(kind=wp), intent(in) :: sz
 
   real(kind=wp), contiguous, intent(out) :: bxj(:), byj(:), bzj(:)
-  real(kind=wp) :: zcoord_unscaled
+  real(kind=wp) :: z_coord_unscaled
 
   if (zUndType_G == 'Bfile') then
       ! update the by and bz funcs
@@ -57,9 +57,14 @@ contains
       ! can be about 100 micrometer when decompressing a lot. 
       z_coord_unscaled = sZ * lg_G
       ! print *, "z coordinate is", z_coord_unscaled
-      call evaluateSplineBfield(bfieldfromfile_G,zcoord_unscaled,klo_G,khi_G,byf,byfd)
+      call evaluateSplineBfield(bfieldfromfile_G,z_coord_unscaled,klo_G,khi_G,byf,byfd)
+      ! print *, "z coordinate is", z_coord_unscaled
   end if
-      
+  if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
+      write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO"), "z=",z_coord_unscaled, " m, byf=",byf, " , byfd=",byfd
+      write (*,*) ""
+      !print *, z_coord_unscaled, byf, byfd
+  end if
 
 
   call getBXfield(sx, sy, sz, bxj)
@@ -75,6 +80,8 @@ contains
 
 
 subroutine getBXfield(sx, sy, sz, bxj)
+
+implicit none
 
   real(kind=wp), contiguous, intent(in) :: sx(:), sy(:)
   real(kind=wp), intent(in) :: sz
@@ -336,6 +343,8 @@ subroutine getBXfield(sx, sy, sz, bxj)
 
   subroutine getBYfield(sx, sy, sz, byj)
 
+  implicit none
+
   real(kind=wp), contiguous, intent(in) :: sx(:), sy(:)
   real(kind=wp), intent(in) :: sz
   real(kind=wp), contiguous, intent(out) :: byj(:)
@@ -455,8 +464,14 @@ subroutine getBXfield(sx, sy, sz, bxj)
      ! Actually far away form the axis the field is probably not correct,
      ! but close to the axis it should be ok!
      byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byf
-!$OMP END WORKSHARE
 
+
+!$OMP END WORKSHARE
+  if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
+      write (*,fmt="(1x,a,E16.8)",advance="NO"), "in getBYField: byf=",byf
+      write (*,*) ""
+      !print *, z_coord_unscaled, byf, byfd
+  end if
 
 
 
@@ -562,6 +577,8 @@ subroutine getBXfield(sx, sy, sz, bxj)
 
 
 subroutine getBZfield(sx, sy, sz, bzj)
+
+implicit none
 
   real(kind=wp), contiguous, intent(in) :: sx(:), sy(:)
   real(kind=wp), intent(in) :: sz
@@ -680,7 +697,11 @@ subroutine getBZfield(sx, sy, sz, bzj)
      bzj = sinh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * byfd * &
            lam_w_G / 2_wp / pi ! integration factor, since byf is not scaled
 !$OMP END WORKSHARE
-
+      if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
+            write (*,fmt="(1x,a,E16.8)",advance="NO"), "in getBZField: byfd*lambda/2pi=",byfd*lam_w_G / 2_wp / pi
+            write (*,*) ""
+            !print *, z_coord_unscaled, byf, byfd
+      end if
 
 
 

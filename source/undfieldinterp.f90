@@ -102,6 +102,7 @@ subroutine read_planepolefield(bfile, bfield)
 end subroutine read_planepolefield
 
 subroutine splineCoeff(ndatapoints,z,Bi,coeff)
+    implicit none
     ! calculate a cubic spline
     ! adapted from
     ! NUMERICAL RECIPES IN FORTRAN 77: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43064-X)
@@ -153,6 +154,7 @@ subroutine splineCoeff(ndatapoints,z,Bi,coeff)
 end subroutine splineCoeff
 
 subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
+    implicit none
     ! return value  and first derivative of splines
     ! adapted from
     ! NUMERICAL RECIPES IN FORTRAN 77: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43064-X)
@@ -162,10 +164,13 @@ subroutine evaluateSplineBfield(bspline,zin,klo,khi,fyeval,fydeval)
     integer(kind=ip), intent(inout) :: klo ! interval index guess low
     integer(kind=ip), intent(inout) :: khi ! interval index guess high
     real(kind=wp), intent(out) :: fyeval,fydeval !,fzeval ,fzdeval ! return values
-
     ! helper variables
     integer(kind=ip) :: k ! position
     real(kind=wp) :: a,b,h,z1,z2
+
+    !write (*,fmt="(1x,a,E16.8)",advance="NO"), "zin=",zin
+    !write (*,*) ""
+
     if ((zin <= bspline%z(1)) .or. (zin >= bspline%z(bspline%n))) then
     ! not in field anymore. return early
         ! write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO"), "zin not in bspline%z(1),bspline%z(bspline%n): zin=",zin, " bspline%z(1)=",bspline%z(1), " bspline%z(bspline%n)=",bspline%z(bspline%n)
