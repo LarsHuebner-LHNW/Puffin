@@ -899,7 +899,7 @@ contains
 
       ! for Bfile the effective displacement has to be calculated from the second field integral.
       prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))
-      allocate(B_i1,traj)
+      allocate(B_i1(bfieldfromfile_G%n),traj(bfieldfromfile_G%n))
       
       ! calculate first field integral (cumulative trapezoidal rule 1)
       B_i1(1) = 0.0_wp
