@@ -23,6 +23,7 @@ use initConds
 use functions
 use pdiff
 use undfieldinterp
+use typesAndConstants
 
 implicit none
 
@@ -833,6 +834,7 @@ contains
 
   subroutine matchIn(sZ)
 
+    implicit none
     real(kind=wp), intent(in) :: sZ
 
     real(kind=wp), allocatable :: spx0_offset(:),spy0_offset(:), &
@@ -840,11 +842,22 @@ contains
 
     real(kind=wp) :: kx, ky
 
+    real(kind=wp), allocatable :: traj, B_i1 ! integrated fields for Bfile
+    real(kind=wp) :: prefactor, n
+    real(kind=wp) :: b,m,sumx,sumx2,sumxy,sumy,sumy2 ! linear regression
+
+    integer :: j
+
     integer :: error
 
     kx = kx_und_G
     ky = ky_und_G
 
+    sumx = 0.
+    sumx2 = 0.
+    sumxy = 0.
+    sumy = 0.
+    sumy2 = 0.
 
     allocate(spx0_offset(iNumberElectrons_G), spy0_offset(iNumberElectrons_G))
     allocate(sx_offset(iNumberElectrons_G),sy_offset(iNumberElectrons_G))
@@ -883,6 +896,59 @@ contains
 
     else
 
+    else if (zUndType_G == 'Bfile') then
+
+      ! for Bfile the effective displacement has to be calculated from the second field integral.
+      prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))**2.0_wp
+      allocate(B_i1,traj)
+      
+      ! calculate first field integral (cumulative trapezoidal rule 1)
+      B_i1(1) = 0.0_wp
+      do j=2, bfieldfromfile_G%n
+          B_i1(j) = B_i1(j-1) + &
+                    (bfieldfromfile_G%by(j) + bfieldfromfile_G%by(j-1)) / 2.0_wp / &
+                    (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
+      end do
+      ! calculate secord field integral with cos**2 -> position (cumulative trapezoidal rule 2)
+      traj = 0.0_wp
+      do j=2, bfieldfromfile_G%n
+          traj(j) = traj(j-1) + prefactor * &
+                    ( &
+                      B_i1(j)   * cos(B_i1(j))**2.0_wp + &
+                      B_i1(j-1) * cos(B_i1(j-1))**2.0_wp &
+                    ) / 2.0_wp / &
+                    (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
+      end do
+      ! perform linear regression
+      do j=1, bfieldfromfile_G%n
+        sumx = sumx + bfieldfromfile_G%z(j)
+        sumx2 = sumx2 + bfieldfromfile_G%z(j)**2.0_wp
+        sumxy = sumxy + bfieldfromfile_G%z(j) * traj(j)
+        sumy = sumy + traj(j)
+        sumy2 = sumy2 + traj(j)**2.0_wp
+      end do
+      ! m is pointing in rad, b is offset
+      n = real(bfieldfromfile_G%n, kind=wp) ! n has to be real!
+      m = (n * sumxy - sumx*sumy)/(n * sumx2 -sumx**2.0_wp)
+      b = (sumy * sumx2 - sumx*sumxy)/(n*sumx2 - sumx**2.0_wp)
+      ! gamma = p/m_e*c, uz = pz/m_e*c, ux = px/m_e*c
+      ! ux = x'*uz
+      ! ux = x'*sqrt(gamma**2 - ux**2)
+      ! ux**2*(1+x'**2) = x'**2 * gamma**2
+      ! ux = gamma * x'/sqrt(1+x'**2)
+      spx0_offset = -sGammaR_G*m/sqrt(1.0_wp + m**2.0_wp)
+      sx_offset = -b/sqrt(lg_G*lc_G)
+      spy0_offset = 0.0_wp
+      sy_offset = 0.0_wp
+
+      if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1)) then 
+          write (*,fmt="(1x,a,E16.8,a,E16.8,a)",advance="NO"), "Due to Bfile beam is shifted by: x=",-b,"m , x'=" -m,"rad"
+          write (*,*) ""
+          !print *, z_coord_unscaled, byf, byfd
+      end if
+      deallocate(B_i1,traj)
+    else
+
 ! "normal" PUFFIN case with no off-axis undulator
 ! field variation
 
@@ -895,7 +961,7 @@ contains
 
     end if
 
-
+    if (zUndType_G /= "BFile") then
     sx_offset =    xOffSet(sRho_G, sAw_G, sGammaR_G, sGammaR_G * sElGam_G, &
                            sEta_G, sKappa_G, sFocusfactor_G, spx0_offset, -spy0_offset, &
                            fx_G, fy_G, sZ)
@@ -904,6 +970,7 @@ contains
     sy_offset =    yOffSet(sRho_G, sAw_G, sGammaR_G, sGammaR_G * sElGam_G, &
                            sEta_G, sKappa_G, sFocusfactor_G, spx0_offset, -spy0_offset, &
                            fx_G, fy_G, sZ)
+    end if
 
 
 !     Add on new offset to initialize beam for undulator module

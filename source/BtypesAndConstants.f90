@@ -23,6 +23,7 @@ MODULE typesAndConstants
       REAL(KIND=WP),    PARAMETER :: c   = 2.99792458e8
       REAL(KIND=WP),    PARAMETER :: e_0 = 8.854187817e-12
       REAL(KIND=WP),    PARAMETER :: m_e = 9.1093826e-31
+      REAL(KIND=WP),    PARAMETER :: m_e_eV = 510998.95
       REAL(KIND=WP),    PARAMETER :: q_e = 1.60217653e-19
 
       COMPLEX(KIND=WP), PARAMETER :: ci  = (0.0_WP,1.0_WP)
