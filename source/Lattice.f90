@@ -842,7 +842,7 @@ contains
 
     real(kind=wp) :: kx, ky
 
-    real(kind=wp), allocatable :: traj, B_i1 ! integrated fields for Bfile
+    real(kind=wp), allocatable :: traj(:), B_i1(:) ! integrated fields for Bfile
     real(kind=wp) :: prefactor, n
     real(kind=wp) :: b,m,sumx,sumx2,sumxy,sumy,sumy2 ! linear regression
 
@@ -894,7 +894,6 @@ contains
                       pyOffset(sZ, srho_G, fx_G)
 
 
-    else
 
     else if (zUndType_G == 'Bfile') then
 
