@@ -899,7 +899,7 @@ contains
     else if (zUndType_G == 'Bfile') then
 
       ! for Bfile the effective displacement has to be calculated from the second field integral.
-      prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))**2.0_wp
+      prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))
       allocate(B_i1,traj)
       
       ! calculate first field integral (cumulative trapezoidal rule 1)
@@ -914,8 +914,8 @@ contains
       do j=2, bfieldfromfile_G%n
           traj(j) = traj(j-1) + prefactor * &
                     ( &
-                      B_i1(j)   * cos(B_i1(j))**2.0_wp + &
-                      B_i1(j-1) * cos(B_i1(j-1))**2.0_wp &
+                      B_i1(j)   * cos(prefactor * B_i1(j))**2.0_wp + &
+                      B_i1(j-1) * cos(prefactor * B_i1(j-1))**2.0_wp &
                     ) / 2.0_wp / &
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
       end do
