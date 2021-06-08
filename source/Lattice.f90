@@ -961,7 +961,7 @@ contains
 
     end if
 
-    if (zUndType_G /= "BFile") then
+    if (zUndType_G /= "Bfile") then
     sx_offset =    xOffSet(sRho_G, sAw_G, sGammaR_G, sGammaR_G * sElGam_G, &
                            sEta_G, sKappa_G, sFocusfactor_G, spx0_offset, -spy0_offset, &
                            fx_G, fy_G, sZ)
