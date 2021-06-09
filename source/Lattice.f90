@@ -941,13 +941,18 @@ contains
       ! ux**2*(1+x'**2) = x'**2 * gamma**2
       ! ux = gamma * x'/sqrt(1+x'**2)
 
-      spx0_offset = -1.0_wp * sGammaR_G*m/((1.0_wp + m**2.0_wp)**0.5_wp)
+      !spx0_offset = -1.0_wp * m * ((sGammaR_G**2.0_wp - 1)/(1.0_wp + m**2.0_wp))**0.5_wp
+      ! I tried understanding what Puffin does with the PX/Y scaling
+      ! If I understand the code correctly, it does not exactly do what is written in lawrence thesis.
+      ! I think it is the formula above, expanding sGammaR_G at infinity and m at zero, both keeping only first order terms.
+      ! Finally the value is divided by the Undulator parameter.
+      ! However, it could also be, that I have to drop sGammaR_G here for some mysterious reason, because gamma_d is 1 foruser defined beams?
+      spx0_offset = -1.0_wp * m * sGammaR_G / sAw_G
       sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp)
       spy0_offset = 0.0_wp
       sy_offset = 0.0_wp
 
       if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1)) then 
-          PRINT*, "info!"
           write (*,fmt="(a,E16.8,a,E16.8,a)",advance="NO") "Due to Bfile beam is shifted by: x=",-1.0_wp*b,"m , x'=", -1.0_wp*m,"rad"
           write (*,*) ""
           !print *, z_coord_unscaled, byf, byfd
