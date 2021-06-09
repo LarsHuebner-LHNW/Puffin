@@ -61,7 +61,7 @@ contains
       ! print *, "z coordinate is", z_coord_unscaled
   end if
   if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
-      write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO"), "z=",z_coord_unscaled, " m, byf=",byf, " , byfd=",byfd
+      write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO") "z=",z_coord_unscaled, " m, byf=",byf, " , byfd=",byfd
       write (*,*) ""
       !print *, z_coord_unscaled, byf, byfd
   end if
@@ -468,7 +468,7 @@ implicit none
 
 !$OMP END WORKSHARE
   if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
-      write (*,fmt="(1x,a,E16.8)",advance="NO"), "in getBYField: byf=",byf
+      write (*,fmt="(1x,a,E16.8)",advance="NO") "in getBYField: byf=",byf
       write (*,*) ""
       !print *, z_coord_unscaled, byf, byfd
   end if
@@ -698,7 +698,7 @@ implicit none
            lam_w_G / 2_wp / pi ! integration factor, since byf is not scaled
 !$OMP END WORKSHARE
       if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
-            write (*,fmt="(1x,a,E16.8)",advance="NO"), "in getBZField: byfd*lambda/2pi=",byfd*lam_w_G / 2_wp / pi
+            write (*,fmt="(1x,a,E16.8)",advance="NO") "in getBZField: byfd*lambda/2pi=",byfd*lam_w_G / 2_wp / pi
             write (*,*) ""
             !print *, z_coord_unscaled, byf, byfd
       end if

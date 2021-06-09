@@ -853,11 +853,11 @@ contains
     kx = kx_und_G
     ky = ky_und_G
 
-    sumx = 0.
-    sumx2 = 0.
-    sumxy = 0.
-    sumy = 0.
-    sumy2 = 0.
+    sumx = 0.0_wp
+    sumx2 = 0.0_wp
+    sumxy = 0.0_wp
+    sumy = 0.0_wp
+    sumy2 = 0.0_wp
 
     allocate(spx0_offset(iNumberElectrons_G), spy0_offset(iNumberElectrons_G))
     allocate(sx_offset(iNumberElectrons_G),sy_offset(iNumberElectrons_G))
@@ -896,28 +896,29 @@ contains
 
 
     else if (zUndType_G == 'Bfile') then
-
       ! for Bfile the effective displacement has to be calculated from the second field integral.
-      prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))
+      prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))*KtoB/lam_w_G
       allocate(B_i1(bfieldfromfile_G%n),traj(bfieldfromfile_G%n))
       
       ! calculate first field integral (cumulative trapezoidal rule 1)
       B_i1(1) = 0.0_wp
       do j=2, bfieldfromfile_G%n
           B_i1(j) = B_i1(j-1) + &
-                    (bfieldfromfile_G%by(j) + bfieldfromfile_G%by(j-1)) / 2.0_wp / &
+                    (bfieldfromfile_G%by(j) + bfieldfromfile_G%by(j-1)) / 2.0_wp * &
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
       end do
+
       ! calculate secord field integral with cos**2 -> position (cumulative trapezoidal rule 2)
-      traj = 0.0_wp
+      traj(1) = 0.0_wp
       do j=2, bfieldfromfile_G%n
           traj(j) = traj(j-1) + prefactor * &
                     ( &
                       B_i1(j)   * cos(prefactor * B_i1(j))**2.0_wp + &
                       B_i1(j-1) * cos(prefactor * B_i1(j-1))**2.0_wp &
-                    ) / 2.0_wp / &
+                    ) / 2.0_wp * &
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
       end do
+
       ! perform linear regression
       do j=1, bfieldfromfile_G%n
         sumx = sumx + bfieldfromfile_G%z(j)
@@ -927,21 +928,27 @@ contains
         sumy2 = sumy2 + traj(j)**2.0_wp
       end do
       ! m is pointing in rad, b is offset
+
+      IF (tProcInfo_G%qRoot) PRINT*, 'linear regression parameters...'
       n = real(bfieldfromfile_G%n, kind=wp) ! n has to be real!
       m = (n * sumxy - sumx*sumy)/(n * sumx2 -sumx**2.0_wp)
       b = (sumy * sumx2 - sumx*sumxy)/(n*sumx2 - sumx**2.0_wp)
+      IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, m
+      IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, b
       ! gamma = p/m_e*c, uz = pz/m_e*c, ux = px/m_e*c
       ! ux = x'*uz
       ! ux = x'*sqrt(gamma**2 - ux**2)
       ! ux**2*(1+x'**2) = x'**2 * gamma**2
       ! ux = gamma * x'/sqrt(1+x'**2)
-      spx0_offset = -sGammaR_G*m/sqrt(1.0_wp + m**2.0_wp)
-      sx_offset = -b/sqrt(lg_G*lc_G)
+
+      spx0_offset = -1.0_wp * sGammaR_G*m/((1.0_wp + m**2.0_wp)**0.5_wp)
+      sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp)
       spy0_offset = 0.0_wp
       sy_offset = 0.0_wp
 
       if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1)) then 
-          write (*,fmt="(1x,a,E16.8,a,E16.8,a)",advance="NO"), "Due to Bfile beam is shifted by: x=",-b,"m , x'=" -m,"rad"
+          PRINT*, "info!"
+          write (*,fmt="(a,E16.8,a,E16.8,a)",advance="NO") "Due to Bfile beam is shifted by: x=",-1.0_wp*b,"m , x'=", -1.0_wp*m,"rad"
           write (*,*) ""
           !print *, z_coord_unscaled, byf, byfd
       end if
