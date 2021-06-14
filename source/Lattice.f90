@@ -897,7 +897,7 @@ contains
 
     else if (zUndType_G == 'Bfile') then
       ! for Bfile the effective displacement has to be calculated from the second field integral.
-      prefactor = (sAw_G*c/(sGammaR_G*m_e_eV))*KtoB/lam_w_G
+      prefactor = 2.0_wp*pi/lam_w_G ! actually the a_w cancels out if the field is normalized!
       allocate(B_i1(bfieldfromfile_G%n),traj(bfieldfromfile_G%n))
       
       ! calculate first field integral (cumulative trapezoidal rule 1)
@@ -908,15 +908,12 @@ contains
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
       end do
 
-      ! calculate secord field integral with cos**2 -> position (cumulative trapezoidal rule 2)
+      ! calculate secord field integral (cumulative trapezoidal rule 2)
       traj(1) = 0.0_wp
       do j=2, bfieldfromfile_G%n
-          traj(j) = traj(j-1) + prefactor * &
-                    ( &
-                      B_i1(j)   * cos(prefactor * B_i1(j))**2.0_wp + &
-                      B_i1(j-1) * cos(prefactor * B_i1(j-1))**2.0_wp &
-                    ) / 2.0_wp * &
-                    (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
+          traj(j) = traj(j-1) + &
+                    (B_i1(j) + B_i1(j-1)) / 2.0_wp * &
+                    (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1))
       end do
 
       ! perform linear regression
@@ -933,6 +930,8 @@ contains
       n = real(bfieldfromfile_G%n, kind=wp) ! n has to be real!
       m = (n * sumxy - sumx*sumy)/(n * sumx2 -sumx**2.0_wp)
       b = (sumy * sumx2 - sumx*sumxy)/(n*sumx2 - sumx**2.0_wp)
+      m = m * prefactor ! this is scaled units
+      b = b * prefactor * sAw_G / sGammaR_G ! this is x at z = 0 ?
       IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, m
       IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, b
       ! gamma = p/m_e*c, uz = pz/m_e*c, ux = px/m_e*c
@@ -941,19 +940,17 @@ contains
       ! ux**2*(1+x'**2) = x'**2 * gamma**2
       ! ux = gamma * x'/sqrt(1+x'**2)
 
-      !spx0_offset = -1.0_wp * m * ((sGammaR_G**2.0_wp - 1)/(1.0_wp + m**2.0_wp))**0.5_wp
+      ! spx0_offset = -1.0_wp * m * ((sGammaR_G**2.0_wp - 1)/(1.0_wp + m**2.0_wp))**0.5_wp
       ! I tried understanding what Puffin does with the PX/Y scaling
-      ! If I understand the code correctly, it does not exactly do what is written in lawrence thesis.
-      ! I think it is the formula above, expanding sGammaR_G at infinity and m at zero, both keeping only first order terms.
-      ! Finally the value is divided by the Undulator parameter.
-      ! However, it could also be, that I have to drop sGammaR_G here for some mysterious reason, because gamma_d is 1 foruser defined beams?
-      spx0_offset = -1.0_wp * m * sGammaR_G / sAw_G
-      sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp)
+      ! I reworked the code and removed the initial comment, because its explanation was probably wrong.
+      spx0_offset =  sElGam_G * -1.0_wp * m ! this should be per perticle
+      sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp) ! this is a general offset
       spy0_offset = 0.0_wp
       sy_offset = 0.0_wp
 
       if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1)) then 
-          write (*,fmt="(a,E16.8,a,E16.8,a)",advance="NO") "Due to Bfile beam is shifted by: x=",-1.0_wp*b,"m , x'=", -1.0_wp*m,"rad"
+          write (*,fmt="(a,E16.8,a)",advance="NO") "Due to Bfile beam is shifted by: x'=",-1000.0_wp*m*sAw_G/sGammaR_G,"mrad"
+          write (*,fmt="(a,E16.8,a)",advance="NO") " and  x=",-1000.0_wp*b,"mm"
           write (*,*) ""
           !print *, z_coord_unscaled, byf, byfd
       end if
@@ -981,6 +978,11 @@ contains
     sy_offset =    yOffSet(sRho_G, sAw_G, sGammaR_G, sGammaR_G * sElGam_G, &
                            sEta_G, sKappa_G, sFocusfactor_G, spx0_offset, -spy0_offset, &
                            fx_G, fy_G, sZ)
+    else
+        ! "Bfile" case
+        ! center beam before going into undulator. This assumes, that we hit the proper channel!
+        IF (tProcInfo_G%qRoot) PRINT*, 'center beam in (x,y,px,pz) and then add shift...'
+        call correctTrans()
     end if
 
 
