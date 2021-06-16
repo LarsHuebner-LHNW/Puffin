@@ -897,7 +897,7 @@ contains
 
     else if (zUndType_G == 'Bfile') then
       ! for Bfile the effective displacement has to be calculated from the second field integral.
-      prefactor = 2.0_wp*pi/lam_w_G ! actually the a_w cancels out if the field is normalized!
+      prefactor = 2.0_wp*pi/lam_w_G * sAw_G / sGammaR_G
       allocate(B_i1(bfieldfromfile_G%n),traj(bfieldfromfile_G%n))
       
       ! calculate first field integral (cumulative trapezoidal rule 1)
@@ -911,7 +911,7 @@ contains
       ! calculate secord field integral (cumulative trapezoidal rule 2)
       traj(1) = 0.0_wp
       do j=2, bfieldfromfile_G%n
-          traj(j) = traj(j-1) + &
+          traj(j) = traj(j-1) + prefactor * &
                     (B_i1(j) + B_i1(j-1)) / 2.0_wp * &
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1))
       end do
@@ -930,8 +930,6 @@ contains
       n = real(bfieldfromfile_G%n, kind=wp) ! n has to be real!
       m = (n * sumxy - sumx*sumy)/(n * sumx2 -sumx**2.0_wp)
       b = (sumy * sumx2 - sumx*sumxy)/(n*sumx2 - sumx**2.0_wp)
-      m = m * prefactor ! this is scaled units
-      b = b * prefactor * sAw_G / sGammaR_G ! this is x at z = 0 ?
       IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, m
       IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, b
       ! gamma = p/m_e*c, uz = pz/m_e*c, ux = px/m_e*c
@@ -943,13 +941,13 @@ contains
       ! spx0_offset = -1.0_wp * m * ((sGammaR_G**2.0_wp - 1)/(1.0_wp + m**2.0_wp))**0.5_wp
       ! I tried understanding what Puffin does with the PX/Y scaling
       ! I reworked the code and removed the initial comment, because its explanation was probably wrong.
-      spx0_offset =  sElGam_G * -1.0_wp * m ! this should be per perticle
+      spx0_offset =  -1.0_wp * sGammaR_G * sElGam_G / sAw_G * m ! this should be per perticle
       sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp) ! this is a general offset
       spy0_offset = 0.0_wp
       sy_offset = 0.0_wp
 
       if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1)) then 
-          write (*,fmt="(a,E16.8,a)",advance="NO") "Due to Bfile beam is shifted by: x'=",-1000.0_wp*m*sAw_G/sGammaR_G,"mrad"
+          write (*,fmt="(a,E16.8,a)",advance="NO") "Due to Bfile beam is shifted by: x'=",-1000.0_wp*m,"mrad"
           write (*,fmt="(a,E16.8,a)",advance="NO") " and  x=",-1000.0_wp*b,"mm"
           write (*,*) ""
           !print *, z_coord_unscaled, byf, byfd
