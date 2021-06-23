@@ -59,11 +59,11 @@ contains
       ! print *, "z coordinate is", z_coord_unscaled
       call evaluateSplineBfield(bfieldfromfile_G,z_coord_unscaled,klo_G,khi_G,byf,byfd)
       ! print *, "z coordinate is", z_coord_unscaled
-  end if
-  if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
-      write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO") "z=",z_coord_unscaled, " m, byf=",byf, " , byfd=",byfd
-      write (*,*) ""
-      !print *, z_coord_unscaled, byf, byfd
+      if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) then 
+            write (*,fmt="(1x,a,E16.8,a,E16.8,a,E16.8)",advance="NO") "z=",z_coord_unscaled, " m, byf=",byf, " , byfd=",byfd
+            write (*,*) ""
+            !print *, z_coord_unscaled, byf, byfd
+      end if
   end if
 
 

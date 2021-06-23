@@ -259,6 +259,7 @@ contains
 
   INTEGER(KIND=IP)   :: i,ios,nw,error,ri,NL
   REAL(KIND=WP)      :: c1, slamw
+  REAL(KIND=WP)      :: mfi, lenfield
 
   integer(kind=ip) :: nperlam
 
@@ -381,13 +382,13 @@ contains
 !       total number of integration steps (total)
 
         ! if (tProcInfo_G%qRoot) print *, 'try to read line with UF from lattice file.'
-        read (168,*, IOSTAT=ios) ztest, fieldfile, nSteps_arr(cntu)  ! read vars
+        read (168,*, IOSTAT=ios) ztest, fieldfile, nSteps_arr(cntu), mfi, tapers(cntu)  ! read vars
         ! if (tProcInfo_G%qRoot) print *, 'UF line loaded. OK.'
 
         ! force undulator settings
         zundtype_arr(cntu) = 'Bfile'
-        mf(cntu) = 1 ! this is dummy
-        tapers(cntu) = 0 !tapers will probably included at some point
+        ! mf(cntu) = 1 ! this is dummy ! is set below
+        ! tapers(cntu) = 0 !tapers will probably included at some point
         ux_arr(cntu) = 0
         uy_arr(cntu) = 1
         kbnx_arr(cntu) = 0
@@ -440,9 +441,33 @@ contains
         ! stop 'TEST: I interpolated the field. Test Stop!'
         ! === until here: STOP PROGRAM IF DEBUG!
 
+        ! length of the field. Although first entry should be zero.
+        lenfield = bfieldsfromfile(cntuf)%z(n)-bfieldsfromfile(cntuf)%z(1)
+        ! check for integer multiple, given some tolerance of 1%.
+        if (tProcInfo_G%qRoot .and. (ABS(lenfield / lam_w_G - nint(lenfield / lam_w_G,kind=ip)) > 0.01_wp)) then
+          print *, 'WARNING:'
+          print *, 'Undulator length is not an Integer multiple of lambda_w!'
+          print *, 'Make sure to have the correct length in front of the undulator to have dumps'
+          print *, 'after a full period.'
+          print *, 'For reasonable results you also have to specify lambda_w as exact as possible'
+          print *, 'from your data!'
+          print *, 'If these two values do not match, the dumps are not comparable to puffins'
+          print *, 'internal fields and dumps may appear after fractions of the true undulator'
+          print *, 'period, adding artificial oscillations.'
+        end if
+
         ! Dont mess with scaled units. The program can think in scaled units. I cannot.
         ! Also rescaling z for every input beam is messy!
-        delmz(cntu) = (bfieldsfromfile(cntuf)%z(n)-bfieldsfromfile(cntuf)%z(1))/ lg_G / real(nSteps_arr(cntu),kind=wp)
+        delmz(cntu) = lenfield/ lg_G / real(nSteps_arr(cntu),kind=wp)
+        ! mfi is the undulator strength at the CENTER.
+        ! Having to recalculating it by hand for the entrance when chaging the taper is a pain.
+        ! Is the taper in scaled units? Depends on the setting and that is stupid.
+        ! I want it unscaled. always. Scale it here if required.
+        mf(cntu) = mfi * (1.0_wp - lenfield/2.0_wp*tapers(cntu))
+        if (qscaled_G) then
+          ! The case where qscaled_G is false is handled generally
+          tapers(cntu) = tapers(cntu)*lg_G
+        end if
         ! Dont know if it has side effects if not set...
         slamw = 4.0_WP * pi * rho
         
@@ -901,17 +926,22 @@ contains
       allocate(B_i1(bfieldfromfile_G%n),traj(bfieldfromfile_G%n))
       
       ! calculate first field integral (cumulative trapezoidal rule 1)
+      ! taper is added via! by*(n2col0+undgrad/lg*z) -> undgrad/lg = taper per meter
       B_i1(1) = 0.0_wp
       do j=2, bfieldfromfile_G%n
           B_i1(j) = B_i1(j-1) + &
-                    (bfieldfromfile_G%by(j) + bfieldfromfile_G%by(j-1)) / 2.0_wp * &
+                    ( &
+                      bfieldfromfile_G%by(j)*(n2col0 + undgrad/lg_G * bfieldfromfile_G%z(j)) &
+                      + bfieldfromfile_G%by(j-1)*(n2col0 + undgrad/lg_G * bfieldfromfile_G%z(j-1)) &
+                    ) / 2.0_wp * &
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1) )
       end do
+      B_i1 = B_i1*prefactor
 
       ! calculate secord field integral (cumulative trapezoidal rule 2)
       traj(1) = 0.0_wp
       do j=2, bfieldfromfile_G%n
-          traj(j) = traj(j-1) + prefactor * &
+          traj(j) = traj(j-1) + &
                     (B_i1(j) + B_i1(j-1)) / 2.0_wp * &
                     (bfieldfromfile_G%z(j)  - bfieldfromfile_G%z(j-1))
       end do
@@ -932,17 +962,12 @@ contains
       b = (sumy * sumx2 - sumx*sumxy)/(n*sumx2 - sumx**2.0_wp)
       IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, m
       IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 1))  PRINT*, b
-      ! gamma = p/m_e*c, uz = pz/m_e*c, ux = px/m_e*c
-      ! ux = x'*uz
-      ! ux = x'*sqrt(gamma**2 - ux**2)
-      ! ux**2*(1+x'**2) = x'**2 * gamma**2
-      ! ux = gamma * x'/sqrt(1+x'**2)
-
-      ! spx0_offset = -1.0_wp * m * ((sGammaR_G**2.0_wp - 1)/(1.0_wp + m**2.0_wp))**0.5_wp
-      ! I tried understanding what Puffin does with the PX/Y scaling
+      
       ! I reworked the code and removed the initial comment, because its explanation was probably wrong.
-      spx0_offset =  -1.0_wp * sGammaR_G * sElGam_G / sAw_G * m ! this should be per perticle
-      sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp) ! this is a general offset
+      ! + I am completely confused by scaled units!
+      spx0_offset =  -1.0_wp * m * sGammaR_G / sAw_G !px_bar !???? This is a factor ~2 too large. why?
+      IF ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) PRINT*, spx0_offset
+      sx_offset = -1.0_wp * b/((lg_G*lc_G)**0.5_wp) ! this is an offset
       spy0_offset = 0.0_wp
       sy_offset = 0.0_wp
 
