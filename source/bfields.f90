@@ -48,7 +48,7 @@ contains
 
   real(kind=wp), contiguous, intent(out) :: bxj(:), byj(:), bzj(:)
   real(kind=wp) :: z_coord_unscaled
-
+  
   if (zUndType_G == 'Bfile') then
       ! update the by and bz funcs
       ! actually, all particles see the same z component! This means, that the change
@@ -66,9 +66,11 @@ contains
       end if
   end if
 
-
+  !if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) PRINT *, "Calling getBX"
   call getBXfield(sx, sy, sz, bxj)
+  !if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) PRINT *, "Calling getBY"
   call getBYfield(sx, sy, sz, byj)
+  !if ((tProcInfo_G%qRoot) .and. (ioutInfo_G > 2)) PRINT *, "Calling getBZ"
   call getBZfield(sx, sy, sz, bzj)
 
   end subroutine getBFields
@@ -168,9 +170,11 @@ implicit none
 
     else if (iUndPlace_G == iUndMain_G) then
 
-!$OMP WORKSHARE
+! HELP! why is this not working anymore? I now said this should not be OMP WORKSHARE because OMP does not work here, but I don't know why...
+!!$OMP WORKSHARE
       bxj = 0_wp
-!$OMP END WORKSHARE
+!!$OMP END WORKSHARE
+! Puffin does not get to this point with openmp activated...
 
     end if
 
@@ -336,7 +340,6 @@ implicit none
 
     end if
 
-
   end subroutine getBXfield
 
 
@@ -420,6 +423,7 @@ implicit none
 
 
       !byj = sin(szt/8_wp)**2_wp * sin(szt)
+
       byj = cosh( sqrt(sEta_G) / 2_wp / sRho_G * sy) * &
             szt / 4_wp / pi * sin(szt)
 !$OMP END WORKSHARE

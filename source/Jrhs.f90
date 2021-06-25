@@ -225,7 +225,7 @@ contains
 
 
     if (qElectronsEvolve_G) then
-
+        
         call getBFields(sx, sy, sz, &
                         bxu, byu, bzu)
 
