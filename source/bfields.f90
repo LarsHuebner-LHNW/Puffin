@@ -92,12 +92,13 @@ implicit none
 !    Local vars:-
 
   real(kind=wp) :: szt
+  integer(kind=ip) :: ibx, lenbx ! Test openmp
 
 !      cc1 = sqrt(sEta_G) / (2_wp * sRho_G * ky_und_G)
 
 
 
-
+  lenbx = size(bxj)
   szt = sZ
   szt = szt / 2_wp / sRho_G
 
@@ -155,18 +156,19 @@ implicit none
 
     if (iUndPlace_G == iUndStart_G) then
 
-!$OMP WORKSHARE
+!!$OMP WORKSHARE
       bxj = 0_wp
-!$OMP END WORKSHARE
+!!$OMP END WORKSHARE
 
     else if (iUndPlace_G == iUndEnd_G) then
 
       szt = sZ - sZFE
       szt = szt / 2_wp / sRho_G
 
-!$OMP WORKSHARE
+!this also does not work. See comment below.
+!!$OMP WORKSHARE
       bxj = 0_wp
-!$OMP END WORKSHARE
+!!$OMP END WORKSHARE
 
     else if (iUndPlace_G == iUndMain_G) then
 
@@ -175,6 +177,13 @@ implicit none
       bxj = 0_wp
 !!$OMP END WORKSHARE
 ! Puffin does not get to this point with openmp activated...
+! I will try to explicitly write the loop
+!!$OMP DO &
+!!$OMP PRIVATE(ibx)
+!    DO ibx = 1_ip, lenbx
+!        bxj(ibx) = 0_wp
+!    END DO
+!!$OMP END DO
 
     end if
 
